@@ -119,7 +119,7 @@ kill_gpu_processes() {
   pkill -f text-generation
   pkill -f lmdeploy
 
-  while [ $(hl-smi --query-aip=memory.used --format=csv,nounits,noheader | head -n 1) -ge 1000 ]; do
+  while [ $(hl-smi --query-aip=memory.used --format=csv,nounits,noheader ) -ge 1000 ]; do
     sleep 1
   done
 }
