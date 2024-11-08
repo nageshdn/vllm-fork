@@ -86,7 +86,7 @@ get_current_llm_serving_engine() {
     return
   fi
 
-  if [ $(pwd) == *"vllm-fork"  ]; then
+  if [ -e /vllm  ]; then
     echo "Container: vllm"
     # move to a completely irrelevant directory, to avoid import vllm from current folder
     export CURRENT_LLM_SERVING_ENGINE=vllm
