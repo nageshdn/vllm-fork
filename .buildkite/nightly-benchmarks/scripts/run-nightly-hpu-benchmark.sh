@@ -51,12 +51,12 @@ upload_to_buildkite() {
   # upload the benchmarking results to buildkite
 
   # if the agent binary is not found, skip uploading the results, exit 0
-  if [ ! -f /workspace/buildkite-agent ]; then
+  if [ ! -f /root/.buildkite-agent/bin/buildkite-agent ]; then
     echo "buildkite-agent binary not found. Skip uploading the results."
     return 0
   fi
   # /workspace/buildkite-agent annotate --style "success" --context "benchmark-results" --append < $RESULTS_FOLDER/${CURRENT_LLM_SERVING_ENGINE}_nightly_results.md
-  /workspace/buildkite-agent artifact upload "$RESULTS_FOLDER/*"
+  /root/.buildkite-agent/bin/buildkite-agent artifact upload "$RESULTS_FOLDER/*"
 }
 
 
@@ -119,9 +119,23 @@ kill_gpu_processes() {
   pkill -f text-generation
   pkill -f lmdeploy
 
-  while [ $(hl-smi --query-aip=memory.used --format=csv,nounits,noheader ) -ge 1000 ]; do
-    sleep 1
+ # while [ $(hl-smi --query-aip=memory.used --format=csv,nounits,noheader ) -ge 1000 ]; do
+ #   sleep 1
+ # done
+  while true; do
+  # Get the memory usage values for all devices and iterate through each one
+  for mem_used in $(hl-smi --query-aip=memory.used --format=csv,nounits,noheader); do
+    # Compare each memory usage value to the threshold
+    if [ "$mem_used" -ge 1000 ]; then
+      # If any device's memory usage is >= 1000, stay in the loop
+      sleep 1
+      continue 2  # Go back to the start of the outer while loop
+    fi
   done
+  # If none of the values are >= 1000, break out of the while loop
+  break
+done
+
 }
 
 wait_for_server() {
@@ -242,7 +256,6 @@ run_serving_tests() {
       if [[ "$backend" == *"vllm"* ]]; then
         backend="vllm"
       fi
-
       if [[ "$dataset_name" = "sharegpt" ]]; then
 
         client_command="python3 benchmark_serving.py \
@@ -357,8 +370,8 @@ main() {
 
   prepare_dataset
   echo $VLLM_SOURCE_CODE_LOC
-  cd $VLLM_SOURCE_CODE_LOC/benchmarks
-  declare -g RESULTS_FOLDER=results/
+  #cd $VLLM_SOURCE_CODE_LOC/benchmarks
+  declare -g RESULTS_FOLDER="$VLLM_SOURCE_CODE_LOC/benchmarks/results"
   mkdir -p $RESULTS_FOLDER
   BENCHMARK_ROOT=$VLLM_SOURCE_CODE_LOC/.buildkite/nightly-benchmarks/
 
@@ -368,7 +381,7 @@ main() {
   # upload benchmark results to buildkite
   python3 -m pip install tabulate pandas
   python3 $BENCHMARK_ROOT/scripts/summary-nightly-results.py
-  upload_to_buildkite
+  #upload_to_buildkite
 
 }
 

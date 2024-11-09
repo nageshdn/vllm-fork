@@ -6,7 +6,10 @@ from pathlib import Path
 import pandas as pd
 from tabulate import tabulate
 
-results_folder = Path("results/")
+
+# Set results_folder to be inside the same directory as the Python file
+results_folder = Path(os.environ["VLLM_SOURCE_CODE_LOC"]) / "benchmarks" / "results"
+print("Results folder path is:", results_folder)
 
 # serving results and the keys that will be printed into markdown
 serving_results = []
@@ -32,7 +35,7 @@ serving_column_mapping = {
 }
 
 if __name__ == "__main__":
-
+    print(f"Results folder is {results_folder}")
     # collect results
     for test_file in results_folder.glob("*.json"):
 
