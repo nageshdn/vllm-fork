@@ -3,19 +3,6 @@
 set -o pipefail
 set -x
 
-check_gpus_v1() {
-  # check the number of GPUs and GPU type.
-  declare -g gpu_count=$(nvidia-smi --list-gpus | wc -l)
-  if [[ $gpu_count -gt 0 ]]; then
-    echo "GPU found."
-  else
-    echo "Need at least 1 GPU to run benchmarking."
-    exit 1
-  fi
-  declare -g gpu_type=$(echo $(nvidia-smi --query-gpu=name --format=csv,noheader) | awk '{print $2}')
-  echo "GPU type is $gpu_type"
-}
-
 check_gpus() {
     # Check the number of HPUs and HPU type.
     declare -g gpu_count=$(hl-smi --query-aip=name,memory.total,memory.used --format=csv,nounits,noheader | wc -l)  # This checks how many HPUs are available.
@@ -141,7 +128,7 @@ done
 wait_for_server() {
   # wait for vllm server to start
   # return 1 if vllm server crashes
-  timeout 1200 bash -c '
+  timeout 2400 bash -c '
     until curl -s localhost:8000/v1/completions > /dev/null; do
       sleep 1
     done' && return 0 || return 1
@@ -370,7 +357,6 @@ main() {
 
   prepare_dataset
   echo $VLLM_SOURCE_CODE_LOC
-  #cd $VLLM_SOURCE_CODE_LOC/benchmarks
   declare -g RESULTS_FOLDER="$VLLM_SOURCE_CODE_LOC/benchmarks/results"
   mkdir -p $RESULTS_FOLDER
   BENCHMARK_ROOT=$VLLM_SOURCE_CODE_LOC/.buildkite/nightly-benchmarks/
