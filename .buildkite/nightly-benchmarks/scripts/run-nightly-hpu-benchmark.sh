@@ -368,7 +368,12 @@ main() {
   python3 -m pip install tabulate pandas
   python3 $BENCHMARK_ROOT/scripts/summary-nightly-results.py
   #upload_to_buildkite
+  DEST_RESULTS_DIR="/datasets/results_$(date +'%Y-%m-%d_%H-%M-%S')"
 
+  # Create the destination directory
+  mkdir -p "$DEST_RESULTS_DIR"
+  # Copy the contents of the source directory to the new destination directory
+  cp -r "$RESULTS_FOLDER"/* "$DEST_DIR"
 }
 
 main "$@"
