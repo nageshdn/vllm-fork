@@ -373,7 +373,7 @@ main() {
   # Create the destination directory
   mkdir -p "$DEST_RESULTS_DIR"
   # Copy the contents of the source directory to the new destination directory
-  cp -r "$RESULTS_FOLDER"/* "$DEST_DIR"
+  cp -r "$RESULTS_FOLDER"/* "$DEST_RESULTS_DIR"
 }
 
 main "$@"
