@@ -9,6 +9,7 @@ ENV no_proxy="localhost,127.0.0.1"
 ENV VLLM_TARGET_DEVICE=hpu
 ENV VLLM_RUNTIME=habana
 ENV VLLM_SOURCE_CODE_LOC=/vllm
+ENV PT_HPU_ENABLE_LAZY_COLLECTIVES=true
 # Copy apt proxy for apt-get to work
 COPY apt.conf /etc/apt/apt.conf
 
@@ -19,20 +20,20 @@ RUN pip install transformers huggingface_hub ray openai
 # Clone llmperf repository
 
 # Clone Habana's vLLM fork
-RUN git clone https://github.com/nageshdn/vllm-fork.git /vllm
+RUN git clone --branch hpu_benchmarks  https://github.com/nageshdn/vllm-fork.git /vllm
 
 # Install Habana's vLLM fork
 WORKDIR /vllm
-RUN git checkout hpu_benchmarks
 RUN pip install -e .
 #RUN python setup.py develop
 # Download and install the Buildkite Agent using the official installation script
 RUN curl -s https://raw.githubusercontent.com/buildkite/agent/master/install.sh | bash
-ENV BUILDKITE_AGENT_TOKEN="TUqquA3QcwihDZV8WNmpHErW"
+ENV BUILDKITE_AGENT_TOKEN="your_token"
 
 # Ensure buildkite-agent is available
 CMD /root/.buildkite-agent/bin/buildkite-agent start & tail -f /dev/null
 #RUN  /root/.buildkite-agent/bin/buildkite-agent start && buildkite-agent --version
 
 # Set the entry point to sleep indefinitely
-ENTRYPOINT ["bash", "-c", "while true; do sleep 1000; done"]
+#ENTRYPOINT ["bash", "-c", "while true; do sleep 1000; done"]
+ENTRYPOINT ["bash", "-c", "cd /vllm/.buildkite/nightly-benchmarks/scripts; bash run-nightly-hpu-benchmark.sh"]
