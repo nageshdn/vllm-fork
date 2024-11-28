@@ -8,7 +8,9 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 (which wget && which curl) || (apt-get update && apt-get install -y wget curl)
 
-# run python-based benchmarks and upload the result to buildkite
+export MODEL="meta-llama/Meta-Llama-3-8B-Instruct"
+
+ #run python-based benchmarks and upload the result to buildkite
 python3 benchmarks/benchmark_latency.py --output-json latency_results.json 2>&1 | tee benchmark_latency.txt
 bench_latency_exit_code=$?
 

@@ -27,11 +27,11 @@ WORKDIR /vllm
 RUN pip install -e .
 #RUN python setup.py develop
 # Download and install the Buildkite Agent using the official installation script
-RUN curl -s https://raw.githubusercontent.com/buildkite/agent/master/install.sh | bash
-ENV BUILDKITE_AGENT_TOKEN="your_token"
+#RUN curl -s https://raw.githubusercontent.com/buildkite/agent/master/install.sh | bash
+#ENV BUILDKITE_AGENT_TOKEN="your_token"
 
 # Ensure buildkite-agent is available
-CMD /root/.buildkite-agent/bin/buildkite-agent start & tail -f /dev/null
+#CMD /root/.buildkite-agent/bin/buildkite-agent start & tail -f /dev/null
 #RUN  /root/.buildkite-agent/bin/buildkite-agent start && buildkite-agent --version
 
 # Set the entry point to sleep indefinitely
