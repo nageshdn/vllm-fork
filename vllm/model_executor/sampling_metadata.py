@@ -9,7 +9,8 @@ from vllm.sampling_params import SamplingParams, SamplingType
 from vllm.sequence import (VLLM_TOKEN_ID_ARRAY_TYPE, SequenceData,
                            SequenceGroupMetadata)
 from vllm.utils import (PyObjectCache, async_tensor_h2d,
-                        is_pin_memory_available, make_tensor_with_pad)
+                        is_pin_memory_available, make_tensor_with_pad,
+                        make_tensor_with_pad_align)
 
 _SAMPLING_EPS = 1e-5
 
@@ -389,7 +390,8 @@ class SamplingTensors:
         vocab_size: int,
         device: torch.device,
         dtype: torch.dtype,
-    ) -> Tuple["SamplingTensors", bool, bool, bool]:
+    ) -> Tuple["SamplingTensors", bool, bool, bool, Optional[int],
+               Optional[float]]:
         prompt_tokens: List[array] = []
         output_tokens: List[array] = []
         top_ks: List[int] = []
@@ -461,6 +463,7 @@ class SamplingTensors:
         if do_penalties:
             for seq_group in sampling_metadata.seq_groups:
                 seq_ids = seq_group.seq_ids
+                sampling_params = seq_group.sampling_params
                 if (seq_group.is_prompt
                         and sampling_params.prompt_logprobs is not None):
                     prefill_len = len(seq_group.prompt_logprob_indices)
@@ -476,6 +479,11 @@ class SamplingTensors:
                         prompt_tokens.append(seq_data.prompt_token_ids_array)
                         output_tokens.append(seq_data.output_token_ids_array)
 
+        top_k_scalar = top_ks[0] if do_top_p_top_k and all(
+            k == top_ks[0] for k in top_ks) else None
+        top_p_scalar = top_ps[0] if do_top_p_top_k and all(
+            p == top_ps[0] for p in top_ps) else None
+
         sampling_tensors = SamplingTensors.from_lists(
             temperatures,
             top_ps,
@@ -490,7 +498,8 @@ class SamplingTensors:
             device,
             dtype,
         )
-        return (sampling_tensors, do_penalties, do_top_p_top_k, do_min_p)
+        return (sampling_tensors, do_penalties, do_top_p_top_k, do_min_p,
+                top_k_scalar, top_p_scalar)
 
     @classmethod
     def from_lists(
@@ -515,20 +524,38 @@ class SamplingTensors:
         do_penalties = prompt_tokens or output_tokens
 
         if do_penalties:
-            prompt_t = make_tensor_with_pad(
-                prompt_tokens,
-                vocab_size,
-                device="cpu",
-                dtype=torch.int64,
-                pin_memory=pin_memory,
-            )
-            output_t = make_tensor_with_pad(
-                output_tokens,
-                vocab_size,
-                device="cpu",
-                dtype=torch.int64,
-                pin_memory=pin_memory,
-            )
+            if current_platform.is_hpu():
+                prompt_t = make_tensor_with_pad_align(
+                    prompt_tokens,
+                    vocab_size,
+                    device="cpu",
+                    dtype=torch.int64,
+                    pin_memory=pin_memory,
+                    max_len_align=1024,
+                )
+                output_t = make_tensor_with_pad_align(
+                    output_tokens,
+                    vocab_size,
+                    device="cpu",
+                    dtype=torch.int64,
+                    pin_memory=pin_memory,
+                    max_len_align=1024,
+                )
+            else:
+                prompt_t = make_tensor_with_pad(
+                    prompt_tokens,
+                    vocab_size,
+                    device="cpu",
+                    dtype=torch.int64,
+                    pin_memory=pin_memory,
+                )
+                output_t = make_tensor_with_pad(
+                    output_tokens,
+                    vocab_size,
+                    device="cpu",
+                    dtype=torch.int64,
+                    pin_memory=pin_memory,
+                )
         else:
             empty_tensor = torch.empty(0, device=device, dtype=torch.long)
             prompt_t = empty_tensor
