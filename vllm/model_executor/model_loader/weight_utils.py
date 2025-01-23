@@ -643,6 +643,11 @@ def initialize_dummy_weights(
                 # XLA device does not support torch.Generator()
                 param.uniform_(low, high)
                 continue
+            if current_platform.is_hpu():
+                import habana_frameworks.torch.hpu.random as htrandom
+                generator = htrandom.default_generators[0].manual_seed(seed)
+            else:
+                generator = torch.Generator(device=device).manual_seed(seed)
 
             generator = torch.Generator(device=param.data.device)
             generator.manual_seed(seed)
